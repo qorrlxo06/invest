@@ -143,12 +143,36 @@ function updateChart(labels, data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: '#38bdf8',
+                    bodyColor: '#f8fafc',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return ' 가격: ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
             scales: {
                 x: { display: false },
                 y: {
-                    grid: { color: '#334155' },
-                    ticks: { color: '#94a3b8' }
+                    beginAtZero: false, // 0부터 시작하지 않고 데이터 범위에 맞춤
+                    grid: { color: 'rgba(51, 65, 85, 0.5)' },
+                    ticks: { 
+                        color: '#94a3b8',
+                        callback: function(value) {
+                            // 큰 금액 가독성 처리
+                            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                            if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+                            return value;
+                        }
+                    }
                 }
             }
         }
