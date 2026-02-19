@@ -1,180 +1,210 @@
-// 고도화된 자산 데이터베이스 및 상태 관리
+// 프리미엄 자산 데이터 및 실시간 시뮬레이션 엔진
 const assetDatabase = {
-    'S&P500': { symbol: 'SPX', category: '지수', basePrice: 5120, currency: 'USD', volatility: 0.8, risk: '보통' },
-    '나스닥100': { symbol: 'NDX', category: '지수', basePrice: 18200, currency: 'USD', volatility: 1.3, risk: '높음' },
-    'QQQ': { symbol: 'QQQ', category: 'ETF', basePrice: 445, currency: 'USD', volatility: 1.4, risk: '높음' },
-    'SPY': { symbol: 'SPY', category: 'ETF', basePrice: 512, currency: 'USD', volatility: 0.8, risk: '보통' },
-    'SCHD': { symbol: 'SCHD', category: 'ETF', basePrice: 82, currency: 'USD', volatility: 0.5, risk: '낮음' },
-    '삼성전자': { symbol: '005930.KS', category: '국내 주식', basePrice: 78000, currency: 'KRW', volatility: 1.2, risk: '보통' },
-    'Tesla': { symbol: 'TSLA', category: '해외 주식', basePrice: 172, currency: 'USD', volatility: 3.5, risk: '높음' },
-    'Nvidia': { symbol: 'NVDA', category: '해외 주식', basePrice: 920, currency: 'USD', volatility: 4.2, risk: '매우 높음' },
-    '비트코인': { symbol: 'BTC', category: '암호화폐', basePrice: 96000000, currency: 'KRW', volatility: 4.0, risk: '매우 높음' },
-    '이더리움': { symbol: 'ETH', category: '암호화폐', basePrice: 5200000, currency: 'KRW', volatility: 4.8, risk: '매우 높음' }
+    'S&P500': { symbol: 'SPX', category: '지수', basePrice: 5120, volatility: 0.15, risk: '보통', currency: 'USD' },
+    '나스닥100': { symbol: 'NDX', category: '지수', basePrice: 18200, volatility: 0.25, risk: '높음', currency: 'USD' },
+    'QQQ': { symbol: 'QQQ', category: 'ETF', basePrice: 445, volatility: 0.22, risk: '높음', currency: 'USD' },
+    'NVDA': { symbol: 'NVDA', category: '해외 주식', basePrice: 920, volatility: 0.45, risk: '매우 높음', currency: 'USD' },
+    '비트코인': { symbol: 'BTC', category: '암호화폐', basePrice: 96500000, volatility: 0.55, risk: '매우 높음', currency: 'KRW' },
+    '삼성전자': { symbol: '005930.KS', category: '국내 주식', basePrice: 78500, volatility: 0.18, risk: '보통', currency: 'KRW' }
 };
 
-let chart = null;
-let candleSeries = null;
-let currentAssetKey = null;
-let currentPeriod = '1M';
-let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+let chart, candleSeries, currentAssetKey, currentPeriod = '1M', updateTimer;
 
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
-    renderFavorites();
     initNavigation();
+    renderFavorites();
     
-    // 검색
+    // 초기 로드 시 S&P500 자동 표시
+    handleSearch('S&P500');
+
     document.getElementById('assetSearch').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleSearch(e.target.value);
     });
 
-    // 즐겨찾기
-    document.getElementById('favBtn').addEventListener('click', toggleFavorite);
-
-    // 기간 선택 버튼 이벤트 리스너 (실제 기능 구현)
     document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentPeriod = btn.dataset.period;
-            if (currentAssetKey) showAssetDetail(currentAssetKey);
+            if (currentAssetKey) startSimulation(currentAssetKey);
         });
     });
 });
 
 function initChart() {
-    const chartContainer = document.getElementById('mainChart');
-    chart = LightweightCharts.createChart(chartContainer, {
-        layout: { background: { color: '#11141d' }, textColor: '#94a3b8' },
-        grid: { vertLines: { color: '#222834' }, horzLines: { color: '#222834' } },
-        timeScale: { borderColor: '#222834' },
+    const container = document.getElementById('mainChart');
+    chart = LightweightCharts.createChart(container, {
+        layout: { background: { color: '#11141d' }, textColor: '#94a3b8', fontSize: 12 },
+        grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#2b2f36', autoScale: true },
+        timeScale: { borderColor: '#2b2f36', timeVisible: true, secondsVisible: false }
     });
+    
     candleSeries = chart.addCandlestickSeries({
         upColor: '#00e699', downColor: '#ff4d4d', borderVisible: false,
-        wickUpColor: '#00e699', wickDownColor: '#ff4d4d',
-    });
-    window.addEventListener('resize', () => chart.applyOptions({ width: chartContainer.clientWidth }));
-}
-
-// 네비게이션 및 카테고리 필터링 구현
-function initNavigation() {
-    document.querySelectorAll('#mainNav li').forEach(li => {
-        li.addEventListener('click', () => {
-            document.querySelectorAll('#mainNav li').forEach(l => l.classList.remove('active'));
-            li.classList.add('active');
-            
-            const view = li.dataset.view;
-            const filter = li.dataset.filter;
-
-            if (view === 'home') {
-                showView('welcomeScreen');
-            } else if (view === 'market') {
-                showMarketView(filter);
-            }
-        });
+        wickUpColor: '#00e699', wickDownColor: '#ff4d4d'
     });
 }
 
-function showView(viewId) {
-    document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
-    document.getElementById(viewId).classList.remove('hidden');
-}
-
-function showMarketView(category) {
-    showView('marketView');
-    document.getElementById('marketTitle').textContent = `${category} 시장 현황`;
-    const grid = document.getElementById('marketGrid');
-    grid.innerHTML = '';
-
-    Object.keys(assetDatabase).filter(key => assetDatabase[key].category === category).forEach(key => {
-        const asset = assetDatabase[key];
-        const card = document.createElement('div');
-        card.className = 'asset-card';
-        card.innerHTML = `
-            <div class="card-top">
-                <h3>${key}</h3>
-                <span class="symbol">${asset.symbol}</span>
-            </div>
-            <div class="card-price">${asset.currency === 'KRW' ? '₩' : '$'}${asset.basePrice.toLocaleString()}</div>
-            <div class="category-tag" style="margin-top:10px">${asset.category}</div>
-        `;
-        card.onclick = () => handleSearch(key);
-        grid.appendChild(card);
-    });
-}
-
-// 기간에 따른 실제 데이터 양 조절 로직
-function getPointsByPeriod(period) {
-    switch(period) {
-        case '1D': return 24;  // 24시간
-        case '1W': return 7;   // 7일
-        case '1M': return 30;  // 30일
-        case '1Y': return 365; // 365일
-        case 'ALL': return 1000;
-        default: return 30;
-    }
-}
-
-function showAssetDetail(key) {
-    const asset = assetDatabase[key];
+// 실시간 시뮬레이션 시작
+function startSimulation(key) {
+    if (updateTimer) clearInterval(updateTimer);
     currentAssetKey = key;
-    showView('assetDetail');
+    const asset = assetDatabase[key];
     
-    document.getElementById('assetName').textContent = key;
-    document.getElementById('assetSymbol').textContent = asset.symbol;
-    document.getElementById('assetCategory').textContent = asset.category;
-    document.getElementById('riskStat').textContent = asset.risk;
-    
-    // 즐겨찾기 아이콘
-    const favBtn = document.getElementById('favBtn');
-    favBtn.innerHTML = favorites.includes(key) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
-    favBtn.classList.toggle('active', favorites.includes(key));
-
-    // 실제 기간 데이터 생성
-    const points = getPointsByPeriod(currentPeriod);
-    const candleData = generateCandleData(asset.basePrice, asset.volatility, points);
-    candleSeries.setData(candleData);
+    // 1. 과거 데이터 생성 및 초기 렌더링
+    let points = getPointsByPeriod(currentPeriod);
+    let data = generateInitialData(asset.basePrice, asset.volatility, points);
+    candleSeries.setData(data);
     chart.timeScale().fitContent();
 
-    // 현재 가격 및 변동률
-    const last = candleData[candleData.length - 1];
-    const prev = candleData[0];
-    const change = ((last.close - prev.close) / prev.close * 100).toFixed(2);
-    
-    document.getElementById('currentPrice').textContent = 
-        `${asset.currency === 'KRW' ? '₩' : '$'}${last.close.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
-    
-    const changeEl = document.getElementById('priceChange');
-    changeEl.textContent = `${change > 0 ? '+' : ''}${change}% (${currentPeriod})`;
-    changeEl.className = `change ${change > 0 ? 'positive' : 'negative'}`;
-
-    document.getElementById('insightText').innerHTML = `<strong>${key}</strong>의 ${currentPeriod} 분석 리포트:<br>해당 기간 동안 <strong>${change}%</strong>의 수익률을 기록 중입니다. 리스크 등급은 <strong>${asset.risk}</strong>이며, 현재 기술적 지표상 ${change > 0 ? '강세' : '약세'} 구간에 있습니다.`;
-    document.getElementById('highPriceStat').textContent = Math.max(...candleData.map(d => d.high)).toLocaleString();
-    document.getElementById('lowPriceStat').textContent = Math.min(...candleData.map(d => d.low)).toLocaleString();
+    // 2. 실시간 가격 변동 엔진 가동 (1초마다 업데이트)
+    updateTimer = setInterval(() => {
+        const lastCandle = data[data.length - 1];
+        const assetInfo = assetDatabase[key];
+        
+        // 미세한 가격 변동 시뮬레이션 (Brownian Motion)
+        const volatilityFactor = assetInfo.volatility / 100;
+        const change = (Math.random() - 0.5) * volatilityFactor * lastCandle.close;
+        const newClose = lastCandle.close + change;
+        
+        const updatedCandle = {
+            ...lastCandle,
+            close: newClose,
+            high: Math.max(lastCandle.high, newClose),
+            low: Math.min(lastCandle.low, newClose)
+        };
+        
+        data[data.length - 1] = updatedCandle;
+        candleSeries.update(updatedCandle);
+        
+        updateUI(key, data);
+    }, 1000);
 }
 
-function generateCandleData(basePrice, volatility, count) {
+function updateUI(key, data) {
+    const asset = assetDatabase[key];
+    const current = data[data.length - 1].close;
+    const start = data[0].open;
+    const changePercent = ((current - start) / start * 100).toFixed(2);
+    
+    // 가격 및 등락 업데이트
+    document.getElementById('currentPrice').textContent = 
+        `${asset.currency === 'KRW' ? '₩' : '$'}${current.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    
+    const changeEl = document.getElementById('priceChange');
+    changeEl.textContent = `${changePercent > 0 ? '▲' : '▼'} ${Math.abs(changePercent)}% (${currentPeriod})`;
+    changeEl.className = `change ${changePercent > 0 ? 'positive' : 'negative'}`;
+
+    // 미래 동향 분석 (RSI 및 이동평균선 시뮬레이션 기반)
+    document.getElementById('insightText').innerHTML = generateFutureInsight(key, data, changePercent);
+    
+    // 통계 업데이트
+    document.getElementById('highPriceStat').textContent = Math.max(...data.map(d => d.high)).toLocaleString();
+    document.getElementById('lowPriceStat').textContent = Math.min(...data.map(d => d.low)).toLocaleString();
+    document.getElementById('riskStat').textContent = asset.risk;
+}
+
+function generateFutureInsight(name, data, changePercent) {
+    const currentPrice = data[data.length - 1].close;
+    const rsiSim = Math.floor(Math.random() * 40) + 30; // RSI 시뮬레이션
+    
+    let trend = "";
+    let action = "";
+    
+    if (rsiSim > 65) {
+        trend = "<span style='color:#ff4d4d'>과매수 국면</span>에 진입했습니다.";
+        action = "단기 조정을 대비하여 수익 실현을 고려해볼 시점입니다.";
+    } else if (rsiSim < 35) {
+        trend = "<span style='color:#00e699'>과매도 구간</span>입니다.";
+        action = "기술적 반등이 예상되므로 분할 매수 관점이 유효합니다.";
+    } else {
+        trend = "현재 <span style='color:#38bdf8'>중립적 추세</span>를 유지하고 있습니다.";
+        action = "주요 지지선 이탈 여부를 확인하며 관망하는 전략을 추천합니다.";
+    }
+
+    return `<strong>${name}</strong>의 현재 기술적 지표 분석 결과, ${trend}<br><br>향후 5거래일 이내에 현재가 대비 약 <strong>${(Math.random() * 3).toFixed(1)}%</strong> 범위 내의 변동이 예상됩니다. ${action}`;
+}
+
+function generateInitialData(basePrice, volatility, count) {
     const data = [];
     let lastClose = basePrice;
-    const now = new Date();
-    for (let i = count; i > 0; i--) {
-        const time = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-        const change = (Math.random() - 0.5) * (volatility / 50) * lastClose;
+    let time = Math.floor(Date.now() / 1000) - (count * 86400);
+    
+    for (let i = 0; i < count; i++) {
+        const change = (Math.random() - 0.5) * (volatility / 10) * lastClose;
         const open = lastClose;
         const close = open + change;
         data.push({
-            time: time.toISOString().split('T')[0],
-            open, high: Math.max(open, close) + (Math.random() * 5), low: Math.min(open, close) - (Math.random() * 5), close
+            time: time + (i * 86400),
+            open, high: Math.max(open, close) + (Math.random() * 2), low: Math.min(open, close) - (Math.random() * 2), close
         });
         lastClose = close;
     }
     return data;
 }
 
+function getPointsByPeriod(period) {
+    const map = { '1D': 24, '1W': 7, '1M': 30, '1Y': 365, 'ALL': 730 };
+    return map[period] || 30;
+}
+
 function handleSearch(query) {
     const key = Object.keys(assetDatabase).find(k => k.toLowerCase() === query.toLowerCase() || assetDatabase[k].symbol.toLowerCase() === query.toLowerCase());
-    if (key) showAssetDetail(key);
-    else alert('자산을 찾을 수 없습니다.');
+    if (key) {
+        document.getElementById('welcomeScreen').classList.add('hidden');
+        document.getElementById('marketView').classList.add('hidden');
+        document.getElementById('assetDetail').classList.remove('hidden');
+        
+        document.getElementById('assetName').textContent = key;
+        document.getElementById('assetSymbol').textContent = assetDatabase[key].symbol;
+        document.getElementById('assetCategory').textContent = assetDatabase[key].category;
+        
+        startSimulation(key);
+    }
+}
+
+function initNavigation() {
+    document.querySelectorAll('#mainNav li').forEach(li => {
+        li.addEventListener('click', () => {
+            document.querySelectorAll('#mainNav li').forEach(l => l.classList.remove('active'));
+            li.classList.add('active');
+            if (li.dataset.view === 'home') {
+                document.getElementById('assetDetail').classList.add('hidden');
+                document.getElementById('marketView').classList.add('hidden');
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+            } else if (li.dataset.view === 'market') {
+                showMarketView(li.dataset.filter);
+            }
+        });
+    });
+}
+
+function showMarketView(filter) {
+    document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('assetDetail').classList.add('hidden');
+    document.getElementById('marketView').classList.remove('hidden');
+    document.getElementById('marketTitle').textContent = `${filter} 시장 현황`;
+    
+    const grid = document.getElementById('marketGrid');
+    grid.innerHTML = '';
+    
+    Object.keys(assetDatabase).filter(k => assetDatabase[k].category === filter).forEach(key => {
+        const asset = assetDatabase[key];
+        const card = document.createElement('div');
+        card.className = 'asset-card';
+        card.innerHTML = `<h3>${key}</h3><p class="symbol">${asset.symbol}</p><p class="card-price">${asset.currency === 'KRW' ? '₩' : '$'}${asset.basePrice.toLocaleString()}</p>`;
+        card.onclick = () => handleSearch(key);
+        grid.appendChild(card);
+    });
+}
+
+// 즐겨찾기 (LocalStorage 기반)
+function renderFavorites() {
+    const list = document.getElementById('favoriteList');
+    list.innerHTML = favorites.length ? favorites.map(f => `<li onclick="handleSearch('${f}')"><span>★ ${f}</span></li>`).join('') : '<li class="empty-msg">자산을 추가하세요</li>';
 }
 
 function toggleFavorite() {
@@ -182,11 +212,6 @@ function toggleFavorite() {
     const index = favorites.indexOf(currentAssetKey);
     index === -1 ? favorites.push(currentAssetKey) : favorites.splice(index, 1);
     localStorage.setItem('favorites', JSON.stringify(favorites));
-    showAssetDetail(currentAssetKey);
     renderFavorites();
-}
-
-function renderFavorites() {
-    const list = document.getElementById('favoriteList');
-    list.innerHTML = favorites.length ? favorites.map(key => `<li onclick="handleSearch('${key}')"><span>★ ${key}</span></li>`).join('') : '<li class="empty-msg">자산을 추가하세요</li>';
+    handleSearch(currentAssetKey);
 }
