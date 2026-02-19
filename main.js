@@ -1,196 +1,205 @@
-// 가상 데이터베이스 (Mock Data)
+// 확장된 자산 데이터베이스
 const assetDatabase = {
-    '삼성전자': {
-        symbol: '005930.KS',
-        category: '국내 주식',
-        basePrice: 72000,
-        currency: 'KRW',
-        description: '대한민국 최대의 반도체 및 전자제품 제조사입니다.',
-        trend: 'up',
-        volatility: 12.5
-    },
-    '비트코인': {
-        symbol: 'BTC/USDT',
-        category: '암호화폐',
-        basePrice: 95000000,
-        currency: 'KRW',
-        description: '가장 대표적인 탈중앙화 디지털 자산입니다.',
-        trend: 'volatile',
-        volatility: 45.2
-    },
-    'Apple': {
-        symbol: 'AAPL.US',
-        category: '해외 주식',
-        basePrice: 190,
-        currency: 'USD',
-        description: '아이폰, 맥북 등을 제조하는 글로벌 IT 기업입니다.',
-        trend: 'up',
-        volatility: 15.8
-    },
-    '금': {
-        symbol: 'GOLD',
-        category: '원자재',
-        basePrice: 2800,
-        currency: 'USD',
-        description: '전통적인 안전 자산으로 인플레이션 헤지 수단입니다.',
-        trend: 'stable',
-        volatility: 8.4
-    }
+    // 국내 주식
+    '삼성전자': { symbol: '005930.KS', category: '국내 주식', basePrice: 75000, currency: 'KRW', volatility: 1.2 },
+    'SK하이닉스': { symbol: '000660.KS', category: '국내 주식', basePrice: 180000, currency: 'KRW', volatility: 2.5 },
+    'NAVER': { symbol: '035420.KS', category: '국내 주식', basePrice: 190000, currency: 'KRW', volatility: 1.8 },
+    
+    // 해외 주식
+    'Apple': { symbol: 'AAPL', category: '해외 주식', basePrice: 185, currency: 'USD', volatility: 1.5 },
+    'Tesla': { symbol: 'TSLA', category: '해외 주식', basePrice: 175, currency: 'USD', volatility: 3.5 },
+    'Nvidia': { symbol: 'NVDA', category: '해외 주식', basePrice: 850, currency: 'USD', volatility: 4.0 },
+    'Microsoft': { symbol: 'MSFT', category: '해외 주식', basePrice: 420, currency: 'USD', volatility: 1.2 },
+    
+    // 암호화폐
+    '비트코인': { symbol: 'BTC', category: '암호화폐', basePrice: 95000000, currency: 'KRW', volatility: 4.5 },
+    '이더리움': { symbol: 'ETH', category: '암호화폐', basePrice: 4500000, currency: 'KRW', volatility: 5.0 },
+    'Solana': { symbol: 'SOL', category: '암호화폐', basePrice: 200000, currency: 'KRW', volatility: 7.0 },
+    
+    // 원자재
+    '금': { symbol: 'GOLD', category: '원자재', basePrice: 2350, currency: 'USD', volatility: 0.8 },
+    '은': { symbol: 'SILVER', category: '원자재', basePrice: 28, currency: 'USD', volatility: 1.5 },
+    '유가(WTI)': { symbol: 'WTI', category: '원자재', basePrice: 85, currency: 'USD', volatility: 2.2 }
 };
 
-let mainChart = null;
+let chart = null;
+let candleSeries = null;
+let currentAssetKey = null;
+let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
 
-// 데이터 생성기 (시뮬레이션)
-function generateHistoryData(basePrice, volatility, points = 100) {
-    let data = [];
-    let current = basePrice;
-    const labels = [];
+// 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    initChart();
+    renderFavorites();
     
-    for (let i = 0; i < points; i++) {
-        const change = (Math.random() - 0.5) * (volatility / 100) * current;
-        current += change;
-        data.push(current);
-        labels.push(`${i}D ago`);
-    }
-    return { data: data.reverse(), labels: labels.reverse() };
+    // 검색 이벤트
+    document.getElementById('assetSearch').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleSearch(e.target.value);
+    });
+
+    // 즐겨찾기 버튼 이벤트
+    document.getElementById('favBtn').addEventListener('click', toggleFavorite);
+});
+
+function initChart() {
+    const chartContainer = document.getElementById('mainChart');
+    chart = LightweightCharts.createChart(chartContainer, {
+        layout: {
+            background: { color: '#161a1e' },
+            textColor: '#94a3b8',
+        },
+        grid: {
+            vertLines: { color: '#2b2f36' },
+            horzLines: { color: '#2b2f36' },
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+            borderColor: '#2b2f36',
+        },
+        timeScale: {
+            borderColor: '#2b2f36',
+            timeVisible: true,
+        },
+    });
+
+    candleSeries = chart.addCandlestickSeries({
+        upColor: '#00c087',
+        downColor: '#ff3b30',
+        borderVisible: false,
+        wickUpColor: '#00c087',
+        wickDownColor: '#ff3b30',
+    });
+
+    window.addEventListener('resize', () => {
+        chart.applyOptions({ width: chartContainer.clientWidth });
+    });
 }
 
-// 인사이트 생성 엔진
-function generateInsight(assetName, data, trend) {
-    const lastPrice = data[data.length - 1];
-    const firstPrice = data[0];
-    const totalReturn = ((lastPrice - firstPrice) / firstPrice * 100).toFixed(2);
+// 캔들 데이터 생성기 (시뮬레이션)
+function generateCandleData(basePrice, volatility, count = 100) {
+    const data = [];
+    let lastClose = basePrice;
+    const now = new Date();
     
-    let advice = "";
-    if (totalReturn > 10) {
-        advice = "최근 강력한 상승 모멘텀을 보이고 있습니다. 전고점 돌파 여부를 주목하세요.";
-    } else if (totalReturn < -10) {
-        advice = "단기 과매도 구간에 진입한 것으로 보입니다. 분할 매수 관점에서 접근이 유효할 수 있습니다.";
-    } else {
-        advice = "현재 박스권 횡보 구간입니다. 주요 이평선 지지 여부를 확인하며 관망하는 전략을 추천합니다.";
+    for (let i = count; i > 0; i--) {
+        const time = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const change = (Math.random() - 0.5) * (volatility / 100) * lastClose;
+        const open = lastClose;
+        const close = open + change;
+        const high = Math.max(open, close) + Math.random() * (volatility / 200) * lastClose;
+        const low = Math.min(open, close) - Math.random() * (volatility / 200) * lastClose;
+        
+        data.push({
+            time: time.toISOString().split('T')[0],
+            open, high, low, close
+        });
+        lastClose = close;
     }
-
-    return `<strong>${assetName}</strong>은(는) 지난 기간 동안 약 <strong>${totalReturn}%</strong>의 수익률을 기록했습니다. <br><br> ${advice} 과거 패턴 분석 결과, 현재는 ${trend === 'volatile' ? '변동성이 매우 높은' : '안정적인'} 흐름을 보이고 있어 신중한 대응이 필요합니다.`;
+    return data;
 }
 
-// 검색 핸들러
 function handleSearch(query) {
-    const welcomeScreen = document.getElementById('welcomeScreen');
-    const assetDetail = document.getElementById('assetDetail');
-    
-    const asset = assetDatabase[query] || Object.values(assetDatabase).find(a => a.symbol.includes(query.toUpperCase()));
+    const key = Object.keys(assetDatabase).find(k => 
+        k.toLowerCase() === query.toLowerCase() || 
+        assetDatabase[k].symbol.toLowerCase() === query.toLowerCase()
+    );
 
-    if (asset) {
-        welcomeScreen.classList.add('hidden');
-        assetDetail.classList.remove('hidden');
-        renderAsset(query, asset);
+    if (key) {
+        currentAssetKey = key;
+        showAssetDetail(key);
     } else {
-        alert('해당 자산을 찾을 수 없습니다. (삼성전자, 비트코인, Apple, 금 등으로 검색해보세요)');
+        alert('검색 결과가 없습니다. (삼성전자, Tesla, BTC, GOLD 등)');
     }
 }
 
-// 화면 렌더링
-function renderAsset(name, asset) {
-    document.getElementById('assetName').textContent = name;
+function showAssetDetail(key) {
+    const asset = assetDatabase[key];
+    document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('assetDetail').classList.remove('hidden');
+    
+    document.getElementById('assetName').textContent = key;
     document.getElementById('assetSymbol').textContent = asset.symbol;
     document.getElementById('assetCategory').textContent = asset.category;
     
-    const history = generateHistoryData(asset.basePrice, asset.volatility);
-    const currentPrice = history.data[history.data.length - 1];
-    const prevPrice = history.data[history.data.length - 2];
-    const changePercent = ((currentPrice - prevPrice) / prevPrice * 100).toFixed(2);
+    // 즐겨찾기 버튼 상태 업데이트
+    const favBtn = document.getElementById('favBtn');
+    if (favorites.includes(key)) {
+        favBtn.classList.add('active');
+        favBtn.innerHTML = '<i class="fas fa-star"></i>';
+    } else {
+        favBtn.classList.remove('active');
+        favBtn.innerHTML = '<i class="far fa-star"></i>';
+    }
 
+    const candleData = generateCandleData(asset.basePrice, asset.volatility);
+    candleSeries.setData(candleData);
+    chart.timeScale().fitContent();
+
+    // 가격 정보 업데이트
+    const lastCandle = candleData[candleData.length - 1];
+    const prevCandle = candleData[candleData.length - 2];
+    const changePercent = ((lastCandle.close - prevCandle.close) / prevCandle.close * 100).toFixed(2);
+    
     document.getElementById('currentPrice').textContent = 
-        `${asset.currency === 'KRW' ? '₩' : '$'}${currentPrice.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+        `${asset.currency === 'KRW' ? '₩' : '$'}${lastCandle.close.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
     
     const changeEl = document.getElementById('priceChange');
     changeEl.textContent = `${changePercent > 0 ? '+' : ''}${changePercent}%`;
     changeEl.className = `change ${changePercent > 0 ? 'positive' : 'negative'}`;
 
-    // 차트 업데이트
-    updateChart(history.labels, history.data);
-
-    // 인사이트 업데이트
-    document.getElementById('insightText').innerHTML = generateInsight(name, history.data, asset.trend);
-    
-    // 통계 업데이트
+    // 인사이트 및 통계
+    document.getElementById('insightText').innerHTML = generateInsight(key, candleData);
     document.getElementById('volatilityStat').textContent = `${asset.volatility}%`;
-    document.getElementById('highPriceStat').textContent = Math.max(...history.data).toLocaleString(undefined, {maximumFractionDigits: 0});
-    document.getElementById('lowPriceStat').textContent = Math.min(...history.data).toLocaleString(undefined, {maximumFractionDigits: 0});
+    document.getElementById('highPriceStat').textContent = Math.max(...candleData.map(d => d.high)).toLocaleString();
+    document.getElementById('lowPriceStat').textContent = Math.min(...candleData.map(d => d.low)).toLocaleString();
 }
 
-function updateChart(labels, data) {
-    const ctx = document.getElementById('mainChart').getContext('2d');
+function generateInsight(name, data) {
+    const last = data[data.length - 1];
+    const first = data[0];
+    const totalReturn = ((last.close - first.close) / first.close * 100).toFixed(2);
     
-    if (mainChart) {
-        mainChart.destroy();
+    let advice = "";
+    if (totalReturn > 15) {
+        advice = "<strong>추세 분석:</strong> 강력한 상승 추세입니다. 캔들의 꼬리가 짧아 매수세가 여전히 강합니다.";
+    } else if (totalReturn < -15) {
+        advice = "<strong>추세 분석:</strong> 과매도 구간입니다. 하락 캔들의 크기가 줄어드는 지점을 변곡점으로 주시하세요.";
+    } else {
+        advice = "<strong>추세 분석:</strong> 횡보 장세입니다. 볼린저 밴드 상단 돌파나 지지선 이탈 여부가 중요합니다.";
     }
 
-    mainChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '가격 추이',
-                data: data,
-                borderColor: '#38bdf8',
-                backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#1e293b',
-                    titleColor: '#38bdf8',
-                    bodyColor: '#f8fafc',
-                    borderColor: '#334155',
-                    borderWidth: 1,
-                    displayColors: false,
-                    callbacks: {
-                        label: function(context) {
-                            return ' 가격: ' + context.parsed.y.toLocaleString();
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: { display: false },
-                y: {
-                    beginAtZero: false, // 0부터 시작하지 않고 데이터 범위에 맞춤
-                    grid: { color: 'rgba(51, 65, 85, 0.5)' },
-                    ticks: { 
-                        color: '#94a3b8',
-                        callback: function(value) {
-                            // 큰 금액 가독성 처리
-                            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                            if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
-                            return value;
-                        }
-                    }
-                }
-            }
-        }
-    });
+    return `${name}의 최근 수익률은 ${totalReturn}% 입니다. <br><br> ${advice} <br><br> 과거 패턴 상 현재 위치는 중장기 이동평균선 상단에 위치하여 안정적인 흐름을 보입니다.`;
 }
 
-// 이벤트 리스너
-document.getElementById('assetSearch').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        handleSearch(e.target.value);
+// 즐겨찾기 로직
+function toggleFavorite() {
+    if (!currentAssetKey) return;
+    
+    const index = favorites.indexOf(currentAssetKey);
+    if (index === -1) {
+        favorites.push(currentAssetKey);
+    } else {
+        favorites.splice(index, 1);
     }
-});
+    
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    showAssetDetail(currentAssetKey);
+    renderFavorites();
+}
 
-// 타임 버튼 클릭 이벤트 (데모용)
-document.querySelectorAll('.time-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // 실제 데이터라면 여기서 기간별 API 호출
-    });
-});
+function renderFavorites() {
+    const list = document.getElementById('favoriteList');
+    if (favorites.length === 0) {
+        list.innerHTML = '<li class="empty-msg">추가된 자산이 없습니다.</li>';
+        return;
+    }
+
+    list.innerHTML = favorites.map(key => `
+        <li onclick="handleSearch('${key}')">
+            <span><i class="fas fa-star" style="color:#facc15"></i> ${key}</span>
+            <small>${assetDatabase[key].symbol}</small>
+        </li>
+    `).join('');
+}

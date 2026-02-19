@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InvestInsight - 투자 자산 분석 플랫폼</title>
+    <title>InvestInsight - 프리미엄 투자 분석 플랫폼</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 금융 차트 라이브러리 추가 -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -17,12 +18,21 @@
                 <span>InvestInsight</span>
             </div>
             <nav>
-                <ul>
-                    <li class="active"><i class="fas fa-search"></i> 자산 검색</li>
-                    <li><i class="fas fa-globe"></i> 국내/해외 주식</li>
-                    <li><i class="fas fa-coins"></i> 암호화폐</li>
-                    <li><i class="fas fa-gem"></i> 원자재</li>
-                </ul>
+                <div class="nav-section">
+                    <p class="nav-label">메뉴</p>
+                    <ul>
+                        <li class="active"><i class="fas fa-search"></i> 자산 검색</li>
+                        <li><i class="fas fa-globe"></i> 시장 현황</li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <p class="nav-label">내 즐겨찾기</p>
+                    <ul id="favoriteList">
+                        <!-- 즐겨찾기 아이템이 여기에 추가됨 -->
+                        <li class="empty-msg">추가된 자산이 없습니다.</li>
+                    </ul>
+                </div>
             </nav>
         </aside>
 
@@ -31,23 +41,32 @@
             <header>
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="assetSearch" placeholder="검색어를 입력하세요 (예: 삼성전자, 비트코인, Apple...)">
+                    <input type="text" id="assetSearch" placeholder="자산명 또는 티커 입력 (예: 삼성전자, NVDA, ETH...)">
                 </div>
             </header>
 
             <section id="dashboard" class="dashboard">
                 <div id="welcomeScreen" class="welcome-screen">
-                    <i class="fas fa-layer-group"></i>
-                    <h2>어떤 자산을 분석해 드릴까요?</h2>
-                    <p>국내/해외 주식, 암호화폐, 금 등 다양한 자산의 정보를 실시간으로 확인하세요.</p>
+                    <div class="hero-icon">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <h2>글로벌 투자 데이터 분석</h2>
+                    <p>전 세계 주식, 암호화폐, 원자재 데이터를 캔들차트와 AI 인사이트로 분석하세요.</p>
                 </div>
 
                 <div id="assetDetail" class="asset-detail hidden">
                     <div class="asset-header">
                         <div class="asset-info">
-                            <h1 id="assetName">자산 이름</h1>
-                            <span id="assetSymbol" class="symbol">SYMBOL</span>
-                            <span id="assetCategory" class="category-tag">카테고리</span>
+                            <div class="title-row">
+                                <h1 id="assetName">자산 이름</h1>
+                                <button id="favBtn" class="fav-btn">
+                                    <i class="far fa-star"></i>
+                                </button>
+                            </div>
+                            <div class="meta-row">
+                                <span id="assetSymbol" class="symbol">SYMBOL</span>
+                                <span id="assetCategory" class="category-tag">카테고리</span>
+                            </div>
                         </div>
                         <div class="asset-price">
                             <span id="currentPrice" class="price">0</span>
@@ -56,33 +75,37 @@
                     </div>
 
                     <div class="chart-section">
-                        <div class="chart-controls">
-                            <button class="time-btn" data-period="1W">1주일</button>
-                            <button class="time-btn" data-period="1M">1개월</button>
-                            <button class="time-btn active" data-period="1Y">1년</button>
-                            <button class="time-btn" data-period="ALL">전체</button>
+                        <div class="chart-header">
+                            <div class="chart-controls">
+                                <button class="time-btn active" data-period="1D">1D</button>
+                                <button class="time-btn" data-period="1W">1W</button>
+                                <button class="time-btn" data-period="1M">1M</button>
+                                <button class="time-btn" data-period="1Y">1Y</button>
+                            </div>
+                            <div class="chart-type-label">실시간 캔들스틱 차트</div>
                         </div>
-                        <canvas id="mainChart"></canvas>
+                        <!-- TradingView 차트가 렌더링될 영역 -->
+                        <div id="mainChart" class="chart-container"></div>
                     </div>
 
                     <div class="insights-container">
                         <div class="insight-card">
-                            <h3><i class="fas fa-lightbulb"></i> 분석 인사이트</h3>
+                            <h3><i class="fas fa-robot"></i> AI 기술적 분석 인사이트</h3>
                             <div id="insightText" class="insight-text">
                                 데이터를 분석 중입니다...
                             </div>
                         </div>
                         <div class="stats-grid">
                             <div class="stat-item">
-                                <span class="label">과거 변동성 (1Y)</span>
+                                <span class="label">최근 변동성</span>
                                 <span id="volatilityStat" class="value">0%</span>
                             </div>
                             <div class="stat-item">
-                                <span class="label">최고가 (1Y)</span>
+                                <span class="label">최고가 (기간내)</span>
                                 <span id="highPriceStat" class="value">0</span>
                             </div>
                             <div class="stat-item">
-                                <span class="label">최저가 (1Y)</span>
+                                <span class="label">최저가 (기간내)</span>
                                 <span id="lowPriceStat" class="value">0</span>
                             </div>
                         </div>
