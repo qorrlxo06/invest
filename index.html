@@ -1,14 +1,96 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestInsight - 투자 자산 분석 플랫폼</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+    <div class="app-container">
+        <!-- 사이드바 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+                <span>InvestInsight</span>
+            </div>
+            <nav>
+                <ul>
+                    <li class="active"><i class="fas fa-search"></i> 자산 검색</li>
+                    <li><i class="fas fa-globe"></i> 국내/해외 주식</li>
+                    <li><i class="fas fa-coins"></i> 암호화폐</li>
+                    <li><i class="fas fa-gem"></i> 원자재</li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <header>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="assetSearch" placeholder="검색어를 입력하세요 (예: 삼성전자, 비트코인, Apple...)">
+                </div>
+            </header>
+
+            <section id="dashboard" class="dashboard">
+                <div id="welcomeScreen" class="welcome-screen">
+                    <i class="fas fa-layer-group"></i>
+                    <h2>어떤 자산을 분석해 드릴까요?</h2>
+                    <p>국내/해외 주식, 암호화폐, 금 등 다양한 자산의 정보를 실시간으로 확인하세요.</p>
+                </div>
+
+                <div id="assetDetail" class="asset-detail hidden">
+                    <div class="asset-header">
+                        <div class="asset-info">
+                            <h1 id="assetName">자산 이름</h1>
+                            <span id="assetSymbol" class="symbol">SYMBOL</span>
+                            <span id="assetCategory" class="category-tag">카테고리</span>
+                        </div>
+                        <div class="asset-price">
+                            <span id="currentPrice" class="price">0</span>
+                            <span id="priceChange" class="change">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-section">
+                        <div class="chart-controls">
+                            <button class="time-btn" data-period="1W">1주일</button>
+                            <button class="time-btn" data-period="1M">1개월</button>
+                            <button class="time-btn active" data-period="1Y">1년</button>
+                            <button class="time-btn" data-period="ALL">전체</button>
+                        </div>
+                        <canvas id="mainChart"></canvas>
+                    </div>
+
+                    <div class="insights-container">
+                        <div class="insight-card">
+                            <h3><i class="fas fa-lightbulb"></i> 분석 인사이트</h3>
+                            <div id="insightText" class="insight-text">
+                                데이터를 분석 중입니다...
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="label">과거 변동성 (1Y)</span>
+                                <span id="volatilityStat" class="value">0%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="label">최고가 (1Y)</span>
+                                <span id="highPriceStat" class="value">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="label">최저가 (1Y)</span>
+                                <span id="lowPriceStat" class="value">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="main.js"></script>
 </body>
 </html>
