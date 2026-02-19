@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InvestInsight - 프리미엄 투자 분석 플랫폼</title>
+    <title>InvestInsight - 글로벌 인덱스 & ETF 분석</title>
     <link rel="stylesheet" href="style.css">
-    <!-- 금융 차트 라이브러리 추가 -->
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -14,26 +13,37 @@
         <!-- 사이드바 -->
         <aside class="sidebar">
             <div class="logo">
-                <i class="fas fa-chart-line"></i>
+                <i class="fas fa-chart-pie"></i>
                 <span>InvestInsight</span>
             </div>
+            
             <nav>
                 <div class="nav-section">
                     <p class="nav-label">메뉴</p>
                     <ul>
-                        <li class="active"><i class="fas fa-search"></i> 자산 검색</li>
-                        <li><i class="fas fa-globe"></i> 시장 현황</li>
+                        <li class="active" id="menuSearch"><i class="fas fa-search"></i> 자산 검색</li>
+                        <li id="menuMarket"><i class="fas fa-globe"></i> 시장 현황</li>
                     </ul>
                 </div>
                 
                 <div class="nav-section">
                     <p class="nav-label">내 즐겨찾기</p>
                     <ul id="favoriteList">
-                        <!-- 즐겨찾기 아이템이 여기에 추가됨 -->
                         <li class="empty-msg">추가된 자산이 없습니다.</li>
                     </ul>
                 </div>
             </nav>
+
+            <!-- 피드백 & 종목 제안 섹션 (Formspree 연동) -->
+            <div class="sidebar-footer">
+                <div class="suggestion-box">
+                    <p class="suggest-title">원하는 종목이 없나요?</p>
+                    <form action="https://formspree.io/f/xbdakngv" method="POST">
+                        <input type="text" name="asset_request" placeholder="예: SCHD, 엔비디아..." required>
+                        <button type="submit" class="suggest-btn">추가 요청</button>
+                    </form>
+                </div>
+            </div>
         </aside>
 
         <!-- 메인 콘텐츠 -->
@@ -41,17 +51,24 @@
             <header>
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="assetSearch" placeholder="자산명 또는 티커 입력 (예: 삼성전자, NVDA, ETH...)">
+                    <input type="text" id="assetSearch" placeholder="자산명, 티커, ETF 검색 (예: S&P500, QQQ, TSLA...)">
                 </div>
             </header>
 
             <section id="dashboard" class="dashboard">
                 <div id="welcomeScreen" class="welcome-screen">
                     <div class="hero-icon">
-                        <i class="fas fa-gem"></i>
+                        <i class="fas fa-university"></i>
                     </div>
-                    <h2>글로벌 투자 데이터 분석</h2>
-                    <p>전 세계 주식, 암호화폐, 원자재 데이터를 캔들차트와 AI 인사이트로 분석하세요.</p>
+                    <h2>글로벌 지수 & ETF 포트폴리오</h2>
+                    <p>S&P 500, 나스닥 등 주요 지수부터 다양한 ETF까지 한눈에 분석하세요.</p>
+                    <div class="quick-tags">
+                        <span onclick="handleSearch('S&P500')">#S&P500</span>
+                        <span onclick="handleSearch('나스닥100')">#나스닥</span>
+                        <span onclick="handleSearch('QQQ')">#QQQ</span>
+                        <span onclick="handleSearch('SCHD')">#SCHD</span>
+                        <span onclick="handleSearch('비트코인')">#비트코인</span>
+                    </div>
                 </div>
 
                 <div id="assetDetail" class="asset-detail hidden">
@@ -70,42 +87,41 @@
                         </div>
                         <div class="asset-price">
                             <span id="currentPrice" class="price">0</span>
-                            <span id="priceChange" class="change">0%</span>
+                            <div class="change-container">
+                                <span id="priceChange" class="change">0%</span>
+                                <span class="change-label"> (최근 기간)</span>
+                            </div>
                         </div>
                     </div>
 
                     <div class="chart-section">
                         <div class="chart-header">
                             <div class="chart-controls">
-                                <button class="time-btn active" data-period="1D">1D</button>
-                                <button class="time-btn" data-period="1W">1W</button>
-                                <button class="time-btn" data-period="1M">1M</button>
-                                <button class="time-btn" data-period="1Y">1Y</button>
+                                <button class="time-btn active">Live</button>
+                                <span class="chart-mode">Candlestick Professional</span>
                             </div>
-                            <div class="chart-type-label">실시간 캔들스틱 차트</div>
                         </div>
-                        <!-- TradingView 차트가 렌더링될 영역 -->
                         <div id="mainChart" class="chart-container"></div>
                     </div>
 
                     <div class="insights-container">
                         <div class="insight-card">
-                            <h3><i class="fas fa-robot"></i> AI 기술적 분석 인사이트</h3>
+                            <h3><i class="fas fa-brain"></i> AI 고도화 분석 인사이트</h3>
                             <div id="insightText" class="insight-text">
-                                데이터를 분석 중입니다...
+                                최신 시장 트렌드 분석 중...
                             </div>
                         </div>
                         <div class="stats-grid">
-                            <div class="stat-item">
-                                <span class="label">최근 변동성</span>
-                                <span id="volatilityStat" class="value">0%</span>
+                            <div class="stat-item highlight">
+                                <span class="label">위험도 (Beta 기반)</span>
+                                <span id="riskStat" class="value">보통</span>
                             </div>
                             <div class="stat-item">
-                                <span class="label">최고가 (기간내)</span>
+                                <span class="label">52주 최고가</span>
                                 <span id="highPriceStat" class="value">0</span>
                             </div>
                             <div class="stat-item">
-                                <span class="label">최저가 (기간내)</span>
+                                <span class="label">52주 최저가</span>
                                 <span id="lowPriceStat" class="value">0</span>
                             </div>
                         </div>
