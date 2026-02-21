@@ -4,16 +4,21 @@ const assetDatabase = {
     '나스닥100': { symbol: 'NDX', category: '지수', basePrice: 18200, volatility: 0.25, risk: '높음', currency: 'USD' },
     'QQQ': { symbol: 'QQQ', category: 'ETF', basePrice: 445, volatility: 0.22, risk: '높음', currency: 'USD' },
     'NVDA': { symbol: 'NVDA', category: '해외 주식', basePrice: 920, volatility: 0.45, risk: '매우 높음', currency: 'USD' },
-    '비트코인': { symbol: 'BTC', category: '암호화폐', basePrice: 96500000, volatility: 0.55, risk: '매우 높음', currency: 'KRW' },
+    '비트코인': { symbol: 'BTC', category: '암호화폐', basePrice: 0, volatility: 0.55, risk: '매우 높음', currency: 'KRW' }, // 초기값 0, API로 업데이트
+    '이더리움': { symbol: 'ETH', category: '암호화폐', basePrice: 0, volatility: 0.60, risk: '매우 높음', currency: 'KRW' },
+    '리플': { symbol: 'XRP', category: '암호화폐', basePrice: 0, volatility: 0.70, risk: '높음', currency: 'KRW' },
     '삼성전자': { symbol: '005930.KS', category: '국내 주식', basePrice: 78500, volatility: 0.18, risk: '보통', currency: 'KRW' }
 };
 
 let chart, candleSeries, currentAssetKey, currentPeriod = '1M', updateTimer;
+let calcChartInstance = null; // 계산기 차트 인스턴스
 
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
     initNavigation();
     renderFavorites();
+    fetchCryptoPrices(); // 실시간 코인 시세 가져오기
+    setInterval(fetchCryptoPrices, 30000); // 30초마다 갱신
     
     // 초기 로드 시 S&P500 자동 표시
     handleSearch('S&P500');
@@ -31,6 +36,103 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// CoinGecko API를 이용한 실시간 암호화폐 시세 연동
+async function fetchCryptoPrices() {
+    try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple&vs_currencies=krw&include_24hr_change=true');
+        const data = await response.json();
+
+        if (data.bitcoin) {
+            updateAssetPrice('비트코인', data.bitcoin.krw);
+        }
+        if (data.ethereum) {
+            updateAssetPrice('이더리움', data.ethereum.krw);
+        }
+        if (data.ripple) {
+            updateAssetPrice('리플', data.ripple.krw);
+        }
+    } catch (error) {
+        console.error("암호화폐 시세 연동 실패:", error);
+    }
+}
+
+function updateAssetPrice(key, price) {
+    if (assetDatabase[key]) {
+        assetDatabase[key].basePrice = price;
+        // 현재 보고 있는 자산이 암호화폐라면 화면도 즉시 갱신
+        if (currentAssetKey === key) {
+            const currentPriceEl = document.getElementById('currentPrice');
+            if (currentPriceEl) {
+                currentPriceEl.textContent = `₩${price.toLocaleString()}`;
+            }
+        }
+    }
+}
+
+// 복리 계산기 로직
+function calculateCompound() {
+    const principal = parseFloat(document.getElementById('calcPrincipal').value);
+    const monthly = parseFloat(document.getElementById('calcMonthly').value);
+    const rate = parseFloat(document.getElementById('calcRate').value) / 100 / 12; // 월 이자율
+    const years = parseFloat(document.getElementById('calcYears').value);
+    const months = years * 12;
+
+    let total = principal;
+    let totalInvested = principal;
+    const labels = [];
+    const dataPoints = [];
+
+    for (let i = 1; i <= months; i++) {
+        total = total * (1 + rate) + monthly;
+        totalInvested += monthly;
+        
+        if (i % 12 === 0) { // 1년 단위로 데이터 저장
+            labels.push(`${i / 12}년`);
+            dataPoints.push(Math.round(total));
+        }
+    }
+
+    const interest = total - totalInvested;
+
+    // 결과 표시
+    document.getElementById('resultTotal').textContent = `${Math.round(total).toLocaleString()}원`;
+    document.getElementById('resultInterest').textContent = `+${Math.round(interest).toLocaleString()}원`;
+    document.getElementById('resultPrincipal').textContent = `${Math.round(totalInvested).toLocaleString()}원`;
+
+    // 차트 그리기
+    const ctx = document.getElementById('calcChart').getContext('2d');
+    
+    if (calcChartInstance) {
+        calcChartInstance.destroy();
+    }
+
+    calcChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '예상 자산 추이',
+                data: dataPoints,
+                borderColor: '#38bdf8',
+                backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#94a3b8' } }
+            },
+            scales: {
+                x: { ticks: { color: '#94a3b8' }, grid: { color: '#222834' } },
+                y: { ticks: { color: '#94a3b8' }, grid: { color: '#222834' } }
+            }
+        }
+    });
+}
 
 function initChart() {
     const container = document.getElementById('mainChart');
@@ -159,6 +261,7 @@ function handleSearch(query) {
         document.getElementById('assetDetail').classList.remove('hidden');
         document.getElementById('surveyView').classList.add('hidden');
         document.getElementById('commentsView').classList.add('hidden');
+        document.getElementById('calculatorView').classList.add('hidden');
         
         document.getElementById('assetName').textContent = key;
         document.getElementById('assetSymbol').textContent = assetDatabase[key].symbol;
@@ -180,6 +283,7 @@ function initNavigation() {
             document.getElementById('welcomeScreen').classList.add('hidden');
             document.getElementById('surveyView').classList.add('hidden');
             document.getElementById('commentsView').classList.add('hidden');
+            document.getElementById('calculatorView').classList.add('hidden');
 
             if (li.dataset.view === 'home') {
                 document.getElementById('welcomeScreen').classList.remove('hidden');
@@ -189,13 +293,15 @@ function initNavigation() {
                 document.getElementById('surveyView').classList.remove('hidden');
             } else if (li.dataset.view === 'comments') {
                 document.getElementById('commentsView').classList.remove('hidden');
-                // Disqus가 로드되지 않았다면 새로고침 없이 강제 로드 유도 (이미 스크립트가 있다면 DISQUS.reset 호출 가능)
                 if (window.DISQUS) {
                     DISQUS.reset({
                         reload: true,
                         config: disqus_config
                     });
                 }
+            } else if (li.dataset.view === 'calculator') {
+                document.getElementById('calculatorView').classList.remove('hidden');
+                calculateCompound(); // 뷰 진입 시 자동 계산
             }
         });
     });
@@ -206,6 +312,7 @@ function showMarketView(filter) {
     document.getElementById('assetDetail').classList.add('hidden');
     document.getElementById('surveyView').classList.add('hidden');
     document.getElementById('commentsView').classList.add('hidden');
+    document.getElementById('calculatorView').classList.add('hidden');
     document.getElementById('marketView').classList.remove('hidden');
     document.getElementById('marketTitle').textContent = `${filter} 시장 현황`;
     

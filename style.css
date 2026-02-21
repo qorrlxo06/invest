@@ -84,9 +84,9 @@ header { padding: 2rem 3rem; }
 .stat-item { background: var(--glass); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1rem; }
 .stat-item.highlight { border-left: 5px solid var(--accent-color); background: linear-gradient(90deg, rgba(56, 189, 248, 0.1), transparent); }
 
-/* 설문조사 섹션 스타일 */
-.survey-container, .comments-container {
-    max-width: 800px;
+/* 설문조사 및 댓글, 계산기 컨테이너 공통 스타일 */
+.survey-container, .comments-container, .calculator-container {
+    max-width: 900px;
     margin: 2rem auto;
     padding: 3rem;
     background: var(--bg-secondary);
@@ -95,7 +95,7 @@ header { padding: 2rem 3rem; }
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
-.survey-container h2, .comments-container h2 {
+.survey-container h2, .comments-container h2, .calculator-container h2 {
     font-size: 2.5rem;
     font-weight: 800;
     margin-bottom: 1rem;
@@ -167,4 +167,62 @@ header { padding: 2rem 3rem; }
 
 .submit-btn:active {
     transform: translateY(-1px);
+}
+
+/* 계산기 전용 스타일 */
+.calc-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.calc-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.calc-results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.result-card {
+    background: var(--glass);
+    border: 1px solid var(--border-color);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.result-card h3 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.result-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: white;
+}
+
+.result-value.highlight {
+    color: var(--positive);
+}
+
+.chart-wrapper {
+    grid-column: span 2;
+    height: 300px;
+    margin-top: 1rem;
+    background: var(--bg-primary);
+    border-radius: 1.5rem;
+    padding: 1rem;
+}
+
+.calc-btn {
+    margin-top: 1rem;
+    width: 100%;
 }

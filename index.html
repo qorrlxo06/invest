@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- 계산기용 차트 라이브러리 추가 -->
 </head>
 <body>
     <div class="app-container">
@@ -24,7 +25,8 @@
                         <li class="active" data-view="home"><i class="fas fa-home"></i> 홈</li>
                         <li data-view="market" data-filter="지수"><i class="fas fa-chart-pie"></i> 글로벌 지수</li>
                         <li data-view="market" data-filter="ETF"><i class="fas fa-layer-group"></i> ETF 포트폴리오</li>
-                        <li data-view="market" data-filter="암호화폐"><i class="fas fa-coins"></i> 암호화폐</li>
+                        <li data-view="market" data-filter="암호화폐"><i class="fas fa-coins"></i> 암호화폐 (Real)</li>
+                        <li data-view="calculator"><i class="fas fa-calculator"></i> 복리 계산기</li>
                         <li data-view="survey"><i class="fas fa-poll-h"></i> 설문조사</li>
                         <li data-view="comments"><i class="fas fa-comments"></i> 댓글 토론</li>
                     </ul>
@@ -180,6 +182,51 @@
                             })();
                         </script>
                         <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                    </div>
+                </div>
+
+                <!-- 6. 복리 계산기 화면 -->
+                <div id="calculatorView" class="view-content hidden">
+                    <div class="calculator-container">
+                        <h2><i class="fas fa-calculator"></i> 복리 수익률 계산기</h2>
+                        <div class="calc-layout">
+                            <div class="calc-inputs">
+                                <div class="form-group">
+                                    <label>초기 투자금 (원)</label>
+                                    <input type="number" id="calcPrincipal" value="10000000">
+                                </div>
+                                <div class="form-group">
+                                    <label>매월 적립금 (원)</label>
+                                    <input type="number" id="calcMonthly" value="1000000">
+                                </div>
+                                <div class="form-group">
+                                    <label>연 수익률 (%)</label>
+                                    <input type="number" id="calcRate" value="8">
+                                </div>
+                                <div class="form-group">
+                                    <label>투자 기간 (년)</label>
+                                    <input type="number" id="calcYears" value="10">
+                                </div>
+                                <button onclick="calculateCompound()" class="submit-btn calc-btn">계산하기</button>
+                            </div>
+                            <div class="calc-results">
+                                <div class="result-card">
+                                    <h3>최종 자산</h3>
+                                    <p id="resultTotal" class="result-value">0원</p>
+                                </div>
+                                <div class="result-card">
+                                    <h3>총 수익금</h3>
+                                    <p id="resultInterest" class="result-value highlight">0원</p>
+                                </div>
+                                <div class="result-card">
+                                    <h3>총 원금</h3>
+                                    <p id="resultPrincipal" class="result-value">0원</p>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas id="calcChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
