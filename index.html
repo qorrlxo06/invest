@@ -26,6 +26,7 @@
                         <li data-view="market" data-filter="ETF"><i class="fas fa-layer-group"></i> ETF 포트폴리오</li>
                         <li data-view="market" data-filter="암호화폐"><i class="fas fa-coins"></i> 암호화폐</li>
                         <li data-view="survey"><i class="fas fa-poll-h"></i> 설문조사</li>
+                        <li data-view="comments"><i class="fas fa-comments"></i> 댓글 토론</li>
                     </ul>
                 </div>
                 
@@ -157,6 +158,28 @@
                             
                             <button type="submit" class="submit-btn">설문 제출하기</button>
                         </form>
+                    </div>
+                </div>
+
+                <!-- 5. 댓글 토론 화면 -->
+                <div id="commentsView" class="view-content hidden">
+                    <div class="comments-container">
+                        <h2>투자자 커뮤니티</h2>
+                        <p>자유롭게 투자 의견을 나누고 인사이트를 공유하세요.</p>
+                        <div id="disqus_thread"></div>
+                        <script>
+                            var disqus_config = function () {
+                                this.page.url = window.location.href;  
+                                this.page.identifier = 'investinsight-pro-main'; 
+                            };
+                            (function() { 
+                                var d = document, s = d.createElement('script');
+                                s.src = 'https://qorrlxo.disqus.com/embed.js';
+                                s.setAttribute('data-timestamp', +new Date());
+                                (d.head || d.body).appendChild(s);
+                            })();
+                        </script>
+                        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
                     </div>
                 </div>
             </section>

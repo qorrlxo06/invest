@@ -157,6 +157,8 @@ function handleSearch(query) {
         document.getElementById('welcomeScreen').classList.add('hidden');
         document.getElementById('marketView').classList.add('hidden');
         document.getElementById('assetDetail').classList.remove('hidden');
+        document.getElementById('surveyView').classList.add('hidden');
+        document.getElementById('commentsView').classList.add('hidden');
         
         document.getElementById('assetName').textContent = key;
         document.getElementById('assetSymbol').textContent = assetDatabase[key].symbol;
@@ -177,6 +179,7 @@ function initNavigation() {
             document.getElementById('marketView').classList.add('hidden');
             document.getElementById('welcomeScreen').classList.add('hidden');
             document.getElementById('surveyView').classList.add('hidden');
+            document.getElementById('commentsView').classList.add('hidden');
 
             if (li.dataset.view === 'home') {
                 document.getElementById('welcomeScreen').classList.remove('hidden');
@@ -184,6 +187,15 @@ function initNavigation() {
                 showMarketView(li.dataset.filter);
             } else if (li.dataset.view === 'survey') {
                 document.getElementById('surveyView').classList.remove('hidden');
+            } else if (li.dataset.view === 'comments') {
+                document.getElementById('commentsView').classList.remove('hidden');
+                // Disqus가 로드되지 않았다면 새로고침 없이 강제 로드 유도 (이미 스크립트가 있다면 DISQUS.reset 호출 가능)
+                if (window.DISQUS) {
+                    DISQUS.reset({
+                        reload: true,
+                        config: disqus_config
+                    });
+                }
             }
         });
     });
@@ -192,6 +204,8 @@ function initNavigation() {
 function showMarketView(filter) {
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('assetDetail').classList.add('hidden');
+    document.getElementById('surveyView').classList.add('hidden');
+    document.getElementById('commentsView').classList.add('hidden');
     document.getElementById('marketView').classList.remove('hidden');
     document.getElementById('marketTitle').textContent = `${filter} 시장 현황`;
     
