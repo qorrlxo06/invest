@@ -171,12 +171,19 @@ function initNavigation() {
         li.addEventListener('click', () => {
             document.querySelectorAll('#mainNav li').forEach(l => l.classList.remove('active'));
             li.classList.add('active');
+            
+            // 모든 뷰 숨기기
+            document.getElementById('assetDetail').classList.add('hidden');
+            document.getElementById('marketView').classList.add('hidden');
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('surveyView').classList.add('hidden');
+
             if (li.dataset.view === 'home') {
-                document.getElementById('assetDetail').classList.add('hidden');
-                document.getElementById('marketView').classList.add('hidden');
                 document.getElementById('welcomeScreen').classList.remove('hidden');
             } else if (li.dataset.view === 'market') {
                 showMarketView(li.dataset.filter);
+            } else if (li.dataset.view === 'survey') {
+                document.getElementById('surveyView').classList.remove('hidden');
             }
         });
     });

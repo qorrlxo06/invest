@@ -84,7 +84,87 @@ header { padding: 2rem 3rem; }
 .stat-item { background: var(--glass); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1rem; }
 .stat-item.highlight { border-left: 5px solid var(--accent-color); background: linear-gradient(90deg, rgba(56, 189, 248, 0.1), transparent); }
 
-.welcome-hero h1 { font-size: 4rem; font-weight: 900; margin-bottom: 1.5rem; background: linear-gradient(to bottom, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.quick-tags { display: flex; gap: 1rem; justify-content: center; margin-top: 2.5rem; }
-.quick-tags span { background: var(--glass); border: 1px solid var(--border-color); padding: 0.75rem 1.5rem; border-radius: 50px; font-size: 0.95rem; cursor: pointer; transition: 0.3s; }
-.quick-tags span:hover { background: var(--accent-color); color: white; transform: scale(1.05); }
+/* 설문조사 섹션 스타일 */
+.survey-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 3rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 2rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.survey-container h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    background: linear-gradient(to right, #fff, var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.survey-container p {
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+}
+
+.premium-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    padding-left: 0.5rem;
+}
+
+.form-group input, 
+.form-group textarea {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 1.2rem;
+    color: white;
+    font-size: 1rem;
+    transition: 0.3s;
+}
+
+.form-group input:focus, 
+.form-group textarea:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+}
+
+.submit-btn {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #0ea5e9 100%);
+    border: none;
+    border-radius: 1rem;
+    padding: 1.2rem;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 1rem;
+}
+
+.submit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(56, 189, 248, 0.4);
+}
+
+.submit-btn:active {
+    transform: translateY(-1px);
+}
